@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/style.css"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡</text></svg>"><title>Sign in — WebGuard</title></head><body>
+<nav id="nav"></nav>
+<section><div class="auth card rv"><div class="tabs"><button id="t1" class="on">Sign in</button><button id="t2">Create account</button></div>
+<form id="f"><input id="em" type="email" placeholder="Email" autocomplete="email" required><input id="pw" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" required minlength="8"><p class="err" id="er"></p><button class="btn" id="sb" style="width:100%">Sign in</button></form></div></section>
+<footer id="ft"></footer><script src="/js/app.js"></script>
+<script>
+let mode='login';const set=m=>{mode=m;$('#t1').classList.toggle('on',m=='login');$('#t2').classList.toggle('on',m=='register');$('#sb').textContent=m=='login'?'Sign in':'Create account';$('#pw').autocomplete=m=='login'?'current-password':'new-password'};
+$('#t1').onclick=()=>set('login');$('#t2').onclick=()=>set('register');
+if(new URLSearchParams(location.search).get('tab')=='register')set('register');
+if(store.get('wg-token'))location.href='/dashboard';
+$('#f').onsubmit=async e=>{e.preventDefault();$('#er').textContent='';$('#sb').disabled=true;
+try{const r=await api('/auth/'+mode,{method:'POST',body:{email:$('#em').value,password:$('#pw').value}});store.set('wg-token',r.token);location.href='/dashboard'}
+catch(x){$('#er').textContent=x.message;$('#sb').disabled=false}};
+</script></body></html>

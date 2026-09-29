@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/style.css"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡</text></svg>"><title>Dashboard — WebGuard</title></head><body>
+<nav id="nav"></nav>
+<section style="padding-top:50px;max-width:1150px;margin:auto">
+<h2>Dashboard <span>Preview</span></h2><p class="s" id="who">Monitor, analyze and protect your websites.</p>
+<div class="scan rv" style="margin:24px 0"><div class="row"><input id="u" placeholder="example.com" aria-label="Website address"><button class="btn" id="go">Scan Website</button></div>
+<p class="err" id="er" style="margin-top:12px"></p><div class="bar"><div id="pb"></div></div><div id="out" style="display:none"><p class="score" id="sc"></p><div class="res" id="res"></div></div></div>
+<div class="kpis"><div class="kpi"><b id="k1">–</b><span>Total Websites</span></div><div class="kpi"><b id="k2">–</b><span>Scans Today</span></div><div class="kpi"><b id="k3">–</b><span>Threats Blocked</span></div><div class="kpi"><b id="k4">–</b><span>Average Score</span></div></div>
+<div class="dash"><div class="card"><b>Security Overview · last 7 days</b><div id="chart"></div></div>
+<div class="card" style="overflow:auto"><b>Recent Activity</b><table><thead><tr><th>Site</th><th>Score</th><th>Status</th><th></th></tr></thead><tbody id="hist"></tbody></table><p class="s" id="empty" style="display:none;margin-top:14px">No scans yet. Enter a website above to run your first scan.</p></div></div></section>
+<footer id="ft"></footer><script src="/js/app.js"></script>
+<script>
+if(!store.get('wg-token'))location.href='/login';
+function chart(s){const n=s.length,m=Math.max(1,...s.map(x=>x.n)),P=s.map((x,i)=>[20+i*460/(n-1),150-(x.n/m)*120]),d=P.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+$('#chart').innerHTML='<svg viewBox="0 0 500 185" width="100%"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#5b6cff" stop-opacity=".4"/><stop offset="1" stop-color="#5b6cff" stop-opacity="0"/></linearGradient></defs><path d="'+d+'L480 150L20 150Z" fill="url(#a)"/><path class="ln" pathLength="1" d="'+d+'" fill="none" stroke="#7d8bff" stroke-width="3"/>'+s.map((x,i)=>'<text x="'+P[i][0]+'" y="172" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">'+x.day+'</text>').join('')+'</svg>';
+requestAnimationFrame(()=>requestAnimationFrame(()=>$('.ln').classList.add('go')))}
+async function load(){const[me,s,h]=await Promise.all([api('/me',{auth:1}),api('/stats',{auth:1}),api('/scans',{auth:1})]);
+$('#who').textContent='Signed in as '+me.email;
+[['k1',s.sites],['k2',s.today],['k3',s.threats],['k4',s.avg]].forEach(([id,v])=>count($('#'+id),v||0)); 
+chart(s.series);
+$('#empty').style.display=h.length?'none':'block';
+$('#hist').innerHTML=h.map(r=>'<tr><td>'+esc(r.host)+'</td><td>'+r.score+'</td><td><span class="pill '+r.status+'">'+r.status+'</span></td><td><button class="x" data-id="'+r.id+'" aria-label="Delete scan">✕</button></td></tr>').join('');
+$$('.x').forEach(b=>b.onclick=async()=>{await api('/scans/'+b.dataset.id,{method:'DELETE',auth:1});toast('Scan deleted');load()})}
+$('#go').onclick=async()=>{const b=$('#go');$('#er').textContent='';b.disabled=true;b.textContent='Scanning…';$('#out').style.display='none';$('#pb').style.width='15%';
+const t=setInterval(()=>{const w=parseInt($('#pb').style.width);if(w<85)$('#pb').style.width=w+10+'%'},500);
+try{const r=await api('/scan',{method:'POST',body:{url:$('#u').value},auth:1});clearInterval(t);$('#pb').style.width='100%';
+$('#out').style.display='block';const sc=$('#sc');sc.style.color=r.status=='safe'?'var(--ok)':r.status=='warning'?'var(--warn)':'var(--bad)';sc.innerHTML='<span id="sn">0</span>/100 · '+r.status;count($('#sn'),r.score||0);
+$('#res').innerHTML=r.checks.map(c=>'<div class="'+(c.ok?'ok':'bad')+'"><small>'+esc(c.k)+'</small><b>'+esc(c.v)+'</b></div>').join('');
+$$('#res div').forEach((d,i)=>setTimeout(()=>d.classList.add('on'),150*i+100));load()}
+catch(x){clearInterval(t);$('#pb').style.width='0';$('#er').textContent=x.message}
+b.disabled=false;b.textContent='Scan Website'};
+$('#u').onkeydown=e=>{if(e.key=='Enter')$('#go').click()};
+load().catch(x=>$('#er').textContent=x.message);
+</script></body></html>

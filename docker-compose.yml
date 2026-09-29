@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: webguard
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-webguard}
+      POSTGRES_DB: webguard
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webguard"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+  app:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      DATABASE_URL: postgres://webguard:${DB_PASSWORD:-webguard}@db:5432/webguard
+      SAFE_BROWSING_KEY: ${SAFE_BROWSING_KEY:-}
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+volumes:
+  pgdata:
